@@ -164,19 +164,14 @@ export function App() {
               <img src={user.photoURL ?? ''} alt="user" className="w-8 h-8 rounded-full border border-white/20" />
               <span className="text-sm">{user.displayName ?? user.email}</span>
               <button className="px-3 py-1 rounded bg-white/10 border border-white/20 hover:bg-white/20 text-sm" onClick={handleLogout}>ログアウト</button>
+              <button className="ml-2 px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm" onClick={saveToFirestore}>クラウドに保存</button>
             </>
-          ) : (
-            <button className="px-4 py-2 rounded bg-primary-600 hover:bg-primary-700 transition text-base active:scale-95" onClick={handleLogin}>Googleでログイン</button>
-          )}
+          ) : null}
         </div>
       </header>
-
-      <main className="max-w-2xl mx-auto px-2 sm:px-4">
+      <main className="px-4 sm:px-8">
         {user ? (
           <>
-            <div className="flex gap-2 mb-4">
-              <button className="px-3 py-1 rounded bg-primary-600 hover:bg-primary-700 transition text-sm" onClick={saveToFirestore}>クラウドに保存</button>
-            </div>
             <section className="mb-8">
               <h2 className="font-semibold mb-2 text-base sm:text-lg">箱を追加</h2>
               <div className="flex gap-2 flex-col sm:flex-row">

@@ -3,6 +3,8 @@ import React, { useEffect, useState, useRef } from 'react'
 import { auth, provider } from './firebase'
 import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth'
 import { CardPicker } from './components/CardPicker'
+import { db } from './firestore'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
 // 仮のデュエマ代表カード名リスト
 const CARD_NAME_LIST = [
   'ボルメテウス・ホワイト・ドラゴン',
@@ -46,10 +48,35 @@ function randomId() {
 }
 
 export function App() {
+  // Firestore保存・読込
+  const saveToFirestore = async () => {
+    if (!user) return
+    try {
+      await setDoc(doc(db, 'users', user.uid), { boxes })
+      alert('クラウドに保存しました')
+    } catch (e) {
+      alert('保存に失敗しました')
+    }
+  }
+
+  const loadFromFirestore = async (uid: string) => {
+    try {
+      const snap = await getDoc(doc(db, 'users', uid))
+      if (snap.exists()) {
+        const data = snap.data()
+        if (data && Array.isArray(data.boxes)) setBoxes(data.boxes)
+      }
+    } catch (e) {
+      // 読込失敗時は何もしない
+    }
+  }
   // 認証状態管理
   const [user, setUser] = useState<User | null>(null)
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, setUser)
+    const unsub = onAuthStateChanged(auth, u => {
+      setUser(u)
+      if (u) loadFromFirestore(u.uid)
+    })
     return () => unsub()
   }, [])
 
@@ -147,6 +174,9 @@ export function App() {
       <main className="max-w-2xl mx-auto px-2 sm:px-4">
         {user ? (
           <>
+            <div className="flex gap-2 mb-4">
+              <button className="px-3 py-1 rounded bg-primary-600 hover:bg-primary-700 transition text-sm" onClick={saveToFirestore}>クラウドに保存</button>
+            </div>
             <section className="mb-8">
               <h2 className="font-semibold mb-2 text-base sm:text-lg">箱を追加</h2>
               <div className="flex gap-2 flex-col sm:flex-row">

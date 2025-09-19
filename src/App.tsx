@@ -4,7 +4,8 @@ import { auth, provider } from './firebase'
 import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth'
 import { CardPicker } from './components/CardPicker'
 import { db } from './firestore'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { ref, set, get, child } from 'firebase/database';
+import { realtimeDb } from './firebaseRealtime';
 // 仮のデュエマ代表カード名リスト
 const CARD_NAME_LIST = [
   'ボルメテウス・ホワイト・ドラゴン',
@@ -48,34 +49,33 @@ function randomId() {
 }
 
 export function App() {
-  // Firestore保存・読込
-  const saveToFirestore = async () => {
-    if (!user) return
+  // Realtime Database保存・読込
+  const saveToRealtimeDb = async () => {
+    if (!user) return;
     try {
-      await setDoc(doc(db, 'users', user.uid), { boxes })
-      alert('クラウドに保存しました')
+      await set(ref(realtimeDb, `users/${user.uid}/boxes`), boxes);
+      alert('クラウドに保存しました');
     } catch (e) {
-      alert('保存に失敗しました')
+      alert('保存に失敗しました');
     }
-  }
+  };
 
-  const loadFromFirestore = async (uid: string) => {
+  const loadFromRealtimeDb = async (uid: string) => {
     try {
-      const snap = await getDoc(doc(db, 'users', uid))
-      if (snap.exists()) {
-        const data = snap.data()
-        if (data && Array.isArray(data.boxes)) setBoxes(data.boxes)
+      const snapshot = await get(child(ref(realtimeDb), `users/${uid}/boxes`));
+      if (snapshot.exists()) {
+        setBoxes(snapshot.val());
       }
     } catch (e) {
       // 読込失敗時は何もしない
     }
-  }
+  };
   // 認証状態管理
   const [user, setUser] = useState<User | null>(null)
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, u => {
       setUser(u)
-      if (u) loadFromFirestore(u.uid)
+      if (u) loadFromRealtimeDb(u.uid)
     })
     return () => unsub()
   }, [])
@@ -164,7 +164,7 @@ export function App() {
               <img src={user.photoURL ?? ''} alt="user" className="w-8 h-8 rounded-full border border-white/20" />
               <span className="text-sm">{user.displayName ?? user.email}</span>
               <button className="px-3 py-1 rounded bg-white/10 border border-white/20 hover:bg-white/20 text-sm" onClick={handleLogout}>ログアウト</button>
-              <button className="ml-2 px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm" onClick={saveToFirestore}>クラウドに保存</button>
+              <button className="ml-2 px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm" onClick={saveToRealtimeDb}>クラウドに保存</button>
             </>
           ) : null}
         </div>

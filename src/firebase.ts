@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 // TODO: 下記はご自身のFirebaseプロジェクトの設定値に置き換えてください
-const firebaseConfig = {
+export const firebaseConfig = {
  apiKey: "AIzaSyBL3wZ_pbT4Wj_Jm4yPRgQIm5pKiqbGL3M",
   authDomain: "storage-6b3e2.firebaseapp.com",
   projectId: "storage-6b3e2",

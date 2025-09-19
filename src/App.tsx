@@ -179,7 +179,11 @@ export function App() {
               <button className="px-3 py-1 rounded bg-white/10 border border-white/20 hover:bg-white/20 text-sm" onClick={handleLogout}>ログアウト</button>
               <button className="ml-2 px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm" onClick={saveToRealtimeDb}>クラウドに保存</button>
             </>
-          ) : null}
+          ) : (
+            <button className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold" onClick={handleLogin}>
+              Googleでログイン
+            </button>
+          )}
         </div>
       </header>
       <main className="px-4 sm:px-8">

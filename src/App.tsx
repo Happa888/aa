@@ -277,7 +277,7 @@ function BoxSection({ box, onRemove, onAddCard, onRemoveCard, allNames }: {
         <button className="text-xs text-red-400 hover:underline" onClick={onRemove}>箱を削除</button>
       </div>
       <div className="flex gap-2 mb-4 flex-wrap relative">
-        <div className="w-32 relative">
+        <div className="w-32 relative flex flex-col gap-1">
           <input
             ref={inputRef}
             className="rounded-lg px-2 py-1 bg-white/10 border border-white/20 text-white w-full"
@@ -293,7 +293,7 @@ function BoxSection({ box, onRemove, onAddCard, onRemoveCard, allNames }: {
           />
           <button
             type="button"
-            className="absolute -right-2 top-1/2 -translate-y-1/2 translate-x-full text-xs text-primary-300 hover:underline"
+            className="w-full mt-1 px-2 py-1 rounded bg-primary-700 hover:bg-primary-600 text-xs text-white"
             onMouseDown={() => setPickerOpen(true)}
           >一覧</button>
           {showSuggest && filtered.length > 0 && (

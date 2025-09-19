@@ -48,62 +48,71 @@ function randomId() {
   return Math.random().toString(36).slice(2, 10)
 }
 
-export function App() {
-  // Realtime Database保存・読込
-  const saveToRealtimeDb = async () => {
-    if (!user) return;
-    try {
-      await set(ref(realtimeDb, `users/${user.uid}/boxes`), boxes);
-      alert('クラウドに保存しました');
-    } catch (e) {
-      alert('保存に失敗しました');
-    }
-  };
 
+export function App() {
+  // boxesの初期値を空配列に
+  const [boxes, setBoxes] = useState<Box[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [newBoxName, setNewBoxName] = useState('');
+  const [allCardNames, setAllCardNames] = useState<string[]>([]);
+
+  // Realtime Database保存・読込
   const loadFromRealtimeDb = async (uid: string) => {
     try {
       const snapshot = await get(child(ref(realtimeDb), `users/${uid}/boxes`));
       if (snapshot.exists()) {
         setBoxes(snapshot.val());
+      } else {
+        // データがなければ空配列
+        setBoxes([]);
       }
     } catch (e) {
       // 読込失敗時は何もしない
     }
   };
+
+  const saveToRealtimeDb = async () => {
+    if (!user) return;
+    try {
+      await set(ref(realtimeDb, `users/${user.uid}/boxes`), boxes);
+      alert('クラウドに保存しました');
+      // 保存後に即時読込してboxesを最新化
+      await loadFromRealtimeDb(user.uid);
+    } catch (e) {
+      alert('保存に失敗しました');
+    }
+  };
+
   // 認証状態管理
-  const [user, setUser] = useState<User | null>(null)
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, u => {
-      setUser(u)
-      if (u) loadFromRealtimeDb(u.uid)
-    })
-    return () => unsub()
-  }, [])
+      setUser(u);
+      if (u) {
+        loadFromRealtimeDb(u.uid);
+      } else {
+        setBoxes([]);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   // Googleログイン
   const handleLogin = async () => {
     try {
-      await signInWithPopup(auth, provider)
+      await signInWithPopup(auth, provider);
     } catch (e) {
-      alert('ログインに失敗しました')
+      alert('ログインに失敗しました');
     }
-  }
+  };
 
   // ログアウト
   const handleLogout = async () => {
     try {
-      await signOut(auth)
+      await signOut(auth);
     } catch (e) {
-      alert('ログアウトに失敗しました')
+      alert('ログアウトに失敗しました');
     }
-  }
-  const [boxes, setBoxes] = useState<Box[]>([{
-    id: randomId(),
-    name: 'メインデッキ',
-    cards: [],
-  }])
-  const [newBoxName, setNewBoxName] = useState('')
-  const [allCardNames, setAllCardNames] = useState<string[]>([])
+  };
 
   // 公開フォルダのJSONからカード名リストを読み込み（存在しない場合は仮リストにフォールバック）
   useEffect(() => {
@@ -123,33 +132,37 @@ export function App() {
     w.__ALL_CARD_NAMES__ = allCardNames
   }, [allCardNames])
 
+
   // 箱追加
   const addBox = () => {
-    if (!newBoxName.trim()) return
-    setBoxes([...boxes, { id: randomId(), name: newBoxName.trim(), cards: [] }])
-    setNewBoxName('')
-  }
+    if (!newBoxName.trim()) return;
+    setBoxes([...boxes, { id: randomId(), name: newBoxName.trim(), cards: [] }]);
+    setNewBoxName('');
+  };
+
 
   // 箱削除
   const removeBox = (id: string) => {
-    setBoxes(boxes.filter(b => b.id !== id))
-  }
+    setBoxes(boxes.filter(b => b.id !== id));
+  };
+
 
   // カード追加
   const addCard = (boxId: string, card: Omit<Card, 'id'>) => {
     setBoxes(boxes.map(b => b.id === boxId ? {
       ...b,
       cards: [...b.cards, { ...card, id: randomId() }],
-    } : b))
-  }
+    } : b));
+  };
+
 
   // カード削除
   const removeCard = (boxId: string, cardId: string) => {
     setBoxes(boxes.map(b => b.id === boxId ? {
       ...b,
       cards: b.cards.filter(c => c.id !== cardId),
-    } : b))
-  }
+    } : b));
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white pb-24">

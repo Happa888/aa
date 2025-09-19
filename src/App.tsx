@@ -312,14 +312,35 @@ function BoxSection({ box, onRemove, onAddCard, onRemoveCard, allNames }: {
             </ul>
           )}
         </div>
-        <input
-          type="number"
-          min={1}
-          className="rounded-lg px-2 py-1 bg-white/10 border border-white/20 text-white w-16"
-          placeholder="枚数"
-          value={cardCount}
-          onChange={e => setCardCount(Number(e.target.value))}
-        />
+        <div className="flex items-center gap-1 w-24">
+          <button
+            type="button"
+            className="px-2 py-1 rounded bg-primary-700 hover:bg-primary-600 text-white text-base"
+            onClick={() => setCardCount(c => Math.max(1, c - 1))}
+            aria-label="枚数を減らす"
+          >−</button>
+          <input
+            type="tel"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            min={1}
+            className="rounded-lg px-2 py-1 bg-white/10 border border-white/20 text-white w-10 text-center"
+            placeholder="枚数"
+            value={cardCount}
+            onChange={e => {
+              // 先頭ゼロを除去し、1未満は1に
+              let v = e.target.value.replace(/^0+/, '');
+              if (v === '' || isNaN(Number(v))) v = '1';
+              setCardCount(Math.max(1, Number(v)));
+            }}
+          />
+          <button
+            type="button"
+            className="px-2 py-1 rounded bg-primary-700 hover:bg-primary-600 text-white text-base"
+            onClick={() => setCardCount(c => c + 1)}
+            aria-label="枚数を増やす"
+          >＋</button>
+        </div>
         <input
           className="rounded-lg px-2 py-1 bg-white/10 border border-white/20 text-white flex-1"
           placeholder="メモ (任意)"

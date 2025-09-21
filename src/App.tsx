@@ -311,7 +311,7 @@ function BoxSection({ box, onRemove, onAddCard, onRemoveCard, allNames, setBoxNa
   const [boxNameInput, setBoxNameInput] = useState(box.name);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [cardName, setCardName] = useState('');
-  const [cardCount, setCardCount] = useState(1);
+  const [cardCount, setCardCount] = useState<string | number>(1);
   const [cardMemo, setCardMemo] = useState('');
   const [showSuggest, setShowSuggest] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -340,8 +340,10 @@ function BoxSection({ box, onRemove, onAddCard, onRemoveCard, allNames, setBoxNa
   })();
 
   const handleAdd = () => {
-    if (!cardName.trim() || cardCount < 1) return;
-    onAddCard({ name: cardName.trim(), count: cardCount, memo: cardMemo.trim() });
+    // 空欄や不正値は1として扱う
+    const count = cardCount === '' || isNaN(Number(cardCount)) ? 1 : Math.max(1, Number(cardCount));
+    if (!cardName.trim()) return;
+    onAddCard({ name: cardName.trim(), count, memo: cardMemo.trim() });
     setCardName('');
     setCardCount(1);
     setCardMemo('');
@@ -422,7 +424,10 @@ function BoxSection({ box, onRemove, onAddCard, onRemoveCard, allNames, setBoxNa
           <button
             type="button"
             className="px-2 py-1 rounded bg-primary-700 hover:bg-primary-600 text-white text-base"
-            onClick={() => setCardCount(c => Math.max(1, c - 1))}
+            onClick={() => setCardCount(c => {
+              const n = c === '' || isNaN(Number(c)) ? 1 : Number(c);
+              return Math.max(1, n - 1);
+            })}
             aria-label="枚数を減らす"
           >−</button>
           <input
@@ -434,15 +439,23 @@ function BoxSection({ box, onRemove, onAddCard, onRemoveCard, allNames, setBoxNa
             placeholder="枚数"
             value={cardCount}
             onChange={e => {
+              // 先頭ゼロは除去。空欄はそのまま保持。
               let v = e.target.value.replace(/^0+/, '');
-              if (v === '' || isNaN(Number(v))) v = '1';
-              setCardCount(Math.max(1, Number(v)));
+              if (v === '' || /^[0-9]+$/.test(v)) {
+                setCardCount(v);
+              }
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') handleAdd();
             }}
           />
           <button
             type="button"
             className="px-2 py-1 rounded bg-primary-700 hover:bg-primary-600 text-white text-base"
-            onClick={() => setCardCount(c => c + 1)}
+            onClick={() => setCardCount(c => {
+              const n = c === '' || isNaN(Number(c)) ? 1 : Number(c);
+              return n + 1;
+            })}
             aria-label="枚数を増やす"
           >＋</button>
         </div>

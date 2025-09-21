@@ -19,13 +19,15 @@ function EditableCardCountRow({ card, onRemoveCard, onUpdateCardCount }: {
             className="w-12 rounded px-1 py-0.5 text-black text-xs text-center"
             value={input}
             onChange={e => {
-              // 先頭ゼロは除去。不正値や空欄はそのまま保持。
+              // 先頭ゼロは除去。空欄はそのまま保持。
               let v = e.target.value.replace(/^0+/, '');
-              setInput(v);
+              if (v === '' || /^[0-9]+$/.test(v)) {
+                setInput(v);
+              }
             }}
             onKeyDown={e => {
               if (e.key === 'Enter') {
-                const n = Math.max(1, Number(input) || 1);
+                const n = input === '' ? 1 : Math.max(1, Number(input));
                 onUpdateCardCount(card.id, n);
                 setEdit(false);
               }
@@ -33,7 +35,7 @@ function EditableCardCountRow({ card, onRemoveCard, onUpdateCardCount }: {
             autoFocus
           />
           <button className="text-xs text-primary-300 hover:underline ml-1" onClick={() => {
-            const n = Math.max(1, Number(input) || 1);
+            const n = input === '' ? 1 : Math.max(1, Number(input));
             onUpdateCardCount(card.id, n);
             setEdit(false);
           }}>保存</button>

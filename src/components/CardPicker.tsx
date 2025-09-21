@@ -55,7 +55,7 @@ export function CardPicker({ open, onClose, onSelect, allNames = [] }: Props) {
         <div className="p-3 sm:p-4">
           <input
             className="w-full rounded-lg px-3 py-3 sm:py-2 bg-white/10 border border-white/20 text-white text-base"
-            placeholder="検索語を入力（例: ある）"
+            placeholder="検索語を入力（例: バグ丸くん）"
             value={q}
             onChange={e => setQ(e.target.value)}
             autoFocus

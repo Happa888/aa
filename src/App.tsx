@@ -1,3 +1,55 @@
+// カード枚数編集用の行コンポーネント（BoxSectionの前に復元）
+function EditableCardCountRow({ card, onRemoveCard, onUpdateCardCount }: {
+  card: Card;
+  onRemoveCard: (cardId: string) => void;
+  onUpdateCardCount: (cardId: string, newCount: number) => void;
+}) {
+  const [edit, setEdit] = useState(false);
+  const [input, setInput] = useState(card.count.toString());
+  useEffect(() => { setInput(card.count.toString()); }, [card.count]);
+  return (
+    <li className="flex items-center gap-2 py-2">
+      <span className="font-medium">{card.name}</span>
+      {edit ? (
+        <>
+          <input
+            type="tel"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            className="w-12 rounded px-1 py-0.5 text-black text-xs text-center"
+            value={input}
+            onChange={e => {
+              let v = e.target.value.replace(/^0+/, '');
+              if (v === '' || isNaN(Number(v))) v = '1';
+              setInput(v);
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                const n = Math.max(1, Number(input));
+                onUpdateCardCount(card.id, n);
+                setEdit(false);
+              }
+            }}
+            autoFocus
+          />
+          <button className="text-xs text-primary-300 hover:underline ml-1" onClick={() => {
+            const n = Math.max(1, Number(input));
+            onUpdateCardCount(card.id, n);
+            setEdit(false);
+          }}>保存</button>
+          <button className="text-xs text-gray-400 hover:underline ml-1" onClick={() => { setEdit(false); setInput(card.count.toString()); }}>キャンセル</button>
+        </>
+      ) : (
+        <span className="text-xs text-white/60 cursor-pointer" onClick={() => setEdit(true)} title="クリックで編集">×{card.count}</span>
+      )}
+      {card.memo && <span className="text-xs text-white/40 ml-2">{card.memo}</span>}
+      <button
+        className="ml-auto text-xs text-red-400 hover:underline"
+        onClick={() => onRemoveCard(card.id)}
+      >削除</button>
+    </li>
+  );
+}
 
 import React, { useEffect, useState, useRef } from 'react'
 import { auth, provider } from './firebase'
@@ -245,7 +297,17 @@ type BoxSectionProps = {
 };
 
 function BoxSection({ box, onRemove, onAddCard, onRemoveCard, allNames, setBoxName, setBoxes }: BoxSectionProps) {
-  // 箱名保存ロジック（関数スコープの先頭に移動）
+  // 編集用state
+  const [editBoxName, setEditBoxName] = useState(false);
+  const [boxNameInput, setBoxNameInput] = useState(box.name);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [cardName, setCardName] = useState('');
+  const [cardCount, setCardCount] = useState(1);
+  const [cardMemo, setCardMemo] = useState('');
+  const [showSuggest, setShowSuggest] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // 箱名保存ロジック
   function handleBoxNameSave() {
     let newName = boxNameInput.trim();
     if (!newName) newName = '名称未設定';
@@ -253,38 +315,35 @@ function BoxSection({ box, onRemove, onAddCard, onRemoveCard, allNames, setBoxNa
     setBoxNameInput(newName);
     setBoxName(box.id, newName);
   }
-  const [cardName, setCardName] = useState('')
-  const [cardCount, setCardCount] = useState(1)
-  const [cardMemo, setCardMemo] = useState('')
-  const [showSuggest, setShowSuggest] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [pickerOpen, setPickerOpen] = useState(false)
-  // 箱名編集用
-  const [editBoxName, setEditBoxName] = useState(false);
-  const [boxNameInput, setBoxNameInput] = useState(box.name);
 
-  // サジェスト候補（入力文字列を含む正式名称を部分一致で表示）
-  // 日本語検索の表記ゆれ（ひらがな/カタカナ、全角/半角）に対応
+  // サジェスト候補
   const normalizeJP = (s: string) => {
-    const nk = s.normalize('NFKC')
-    // カタカナ→ひらがな（Unicodeで0x60差）
-    const hira = nk.replace(/[\u30A1-\u30F6]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60))
-    return hira.toLowerCase()
-  }
+    const nk = s.normalize('NFKC');
+    // ひらがな化（カタカナ→ひらがな）
+    const hira = nk.replace(/[ァ-ン]/g, s => String.fromCharCode(s.charCodeAt(0) - 0x60));
+    return hira.toLowerCase();
+  };
   const filtered = (() => {
-    const q = cardName.trim()
-    if (!q) return []
-    const nq = normalizeJP(q)
-    return allNames.filter(n => normalizeJP(n).includes(nq)).slice(0, 50)
-  })()
+    const q = cardName.trim();
+    if (!q) return [];
+    const nq = normalizeJP(q);
+    return allNames.filter(n => normalizeJP(n).includes(nq)).slice(0, 50);
+  })();
 
   const handleAdd = () => {
-    if (!cardName.trim() || cardCount < 1) return
-    onAddCard({ name: cardName.trim(), count: cardCount, memo: cardMemo.trim() })
-    setCardName('')
-    setCardCount(1)
-    setCardMemo('')
-    setShowSuggest(false)
+    if (!cardName.trim() || cardCount < 1) return;
+    onAddCard({ name: cardName.trim(), count: cardCount, memo: cardMemo.trim() });
+    setCardName('');
+    setCardCount(1);
+    setCardMemo('');
+    setShowSuggest(false);
+  };
+
+  function setCardCountInBox(cardId: string, newCount: number) {
+    setBoxes(boxes => boxes.map(b => b.id === box.id ? {
+      ...b,
+      cards: b.cards.map(c => c.id === cardId ? { ...c, count: newCount } : c)
+    } : b));
   }
 
   return (
@@ -317,13 +376,6 @@ function BoxSection({ box, onRemove, onAddCard, onRemoveCard, allNames, setBoxNa
         </div>
         <button className="text-xs text-red-400 hover:underline" onClick={onRemove}>箱を削除</button>
       </div>
-  // 箱名保存ロジック
-  function handleBoxNameSave() {
-    const newName = boxNameInput.trim() || '名称未設定';
-    setEditBoxName(false);
-    setBoxNameInput(newName);
-    setBoxName(box.id, newName);
-  }
       <div className="flex gap-2 mb-4 flex-wrap relative">
         <div className="w-32 relative flex flex-col gap-1">
           <input
@@ -332,8 +384,8 @@ function BoxSection({ box, onRemove, onAddCard, onRemoveCard, allNames, setBoxNa
             placeholder="カード名"
             value={cardName}
             onChange={e => {
-              setCardName(e.target.value)
-              setShowSuggest(true)
+              setCardName(e.target.value);
+              setShowSuggest(true);
             }}
             onFocus={() => setShowSuggest(true)}
             onBlur={() => setTimeout(() => setShowSuggest(false), 100)}
@@ -351,9 +403,9 @@ function BoxSection({ box, onRemove, onAddCard, onRemoveCard, allNames, setBoxNa
                   key={name}
                   className="px-2 py-1 hover:bg-primary-600 cursor-pointer text-sm"
                   onMouseDown={() => {
-                    setCardName(name)
-                    setShowSuggest(false)
-                    inputRef.current?.focus()
+                    setCardName(name);
+                    setShowSuggest(false);
+                    inputRef.current?.focus();
                   }}
                 >{name}</li>
               ))}
@@ -376,7 +428,6 @@ function BoxSection({ box, onRemove, onAddCard, onRemoveCard, allNames, setBoxNa
             placeholder="枚数"
             value={cardCount}
             onChange={e => {
-              // 先頭ゼロを除去し、1未満は1に
               let v = e.target.value.replace(/^0+/, '');
               if (v === '' || isNaN(Number(v))) v = '1';
               setCardCount(Math.max(1, Number(v)));
@@ -415,135 +466,10 @@ function BoxSection({ box, onRemove, onAddCard, onRemoveCard, allNames, setBoxNa
             key={card.id}
             card={card}
             onRemoveCard={onRemoveCard}
-            onUpdateCardCount={(cardId: string, newCount: number) => setCardCountInBox(cardId, newCount)}
+            onUpdateCardCount={setCardCountInBox}
           />
         ))}
-
-  function setCardCountInBox(cardId: string, newCount: number) {
-    setBoxes(boxes => boxes.map(b => b.id === box.id ? {
-      ...b,
-      cards: b.cards.map(c => c.id === cardId ? { ...c, count: newCount } : c)
-    } : b));
-  }
-
-
-interface EditableCardCountRowProps {
-  card: Card;
-  onRemoveCard: (cardId: string) => void;
-  onUpdateCardCount: (cardId: string, newCount: number) => void;
-}
-
-function EditableCardCountRow(props: EditableCardCountRowProps) {
-  const { card, onRemoveCard, onUpdateCardCount } = props;
-  const [edit, setEdit] = useState(false);
-  const [input, setInput] = useState(card.count.toString());
-  useEffect(() => { setInput(card.count.toString()); }, [card.count]);
-  return (
-    <li className="flex items-center gap-2 py-2">
-      <span className="font-medium">{card.name}</span>
-      {edit ? (
-        <>
-          <input
-            type="tel"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            className="w-12 rounded px-1 py-0.5 text-black text-xs text-center"
-            value={input}
-            onChange={e => {
-              let v = e.target.value.replace(/^0+/, '');
-              if (v === '' || isNaN(Number(v))) v = '1';
-              setInput(v);
-            }}
-            onKeyDown={e => {
-              if (e.key === 'Enter') {
-                const n = Math.max(1, Number(input));
-                onUpdateCardCount(card.id, n);
-                setEdit(false);
-              }
-            }}
-            autoFocus
-          />
-          <button className="text-xs text-primary-300 hover:underline ml-1" onClick={() => {
-            const n = Math.max(1, Number(input));
-            onUpdateCardCount(card.id, n);
-            setEdit(false);
-          }}>保存</button>
-          <button className="text-xs text-gray-400 hover:underline ml-1" onClick={() => { setEdit(false); setInput(card.count.toString()); }}>キャンセル</button>
-        </>
-      ) : (
-        <span className="text-xs text-white/60 cursor-pointer" onClick={() => setEdit(true)} title="クリックで編集">×{card.count}</span>
-      )}
-      {card.memo && <span className="text-xs text-white/40 ml-2">{card.memo}</span>}
-      <button
-        className="ml-auto text-xs text-red-400 hover:underline"
-        onClick={() => onRemoveCard(card.id)}
-      >削除</button>
-    </li>
-  );
-}
-// カード枚数編集用の行コンポーネント
-function EditableCardCountRow({ card, boxId, onRemoveCard, onUpdateCardCount, memo, name }: {
-  card: Card,
-  boxId: string,
-  onRemoveCard: (cardId: string) => void,
-  onUpdateCardCount: (cardId: string, newCount: number) => void,
-  memo?: string,
-  name: string,
-}) {
-  const [edit, setEdit] = useState(false);
-  const [input, setInput] = useState(card.count.toString());
-  useEffect(() => { setInput(card.count.toString()); }, [card.count]);
-  return (
-    <li className="flex items-center gap-2 py-2">
-      <span className="font-medium">{name}</span>
-      {edit ? (
-        <>
-          <input
-            type="tel"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            className="w-12 rounded px-1 py-0.5 text-black text-xs text-center"
-            value={input}
-            onChange={e => {
-              let v = e.target.value.replace(/^0+/, '');
-              if (v === '' || isNaN(Number(v))) v = '1';
-              setInput(v);
-            }}
-            onKeyDown={e => {
-              if (e.key === 'Enter') {
-                const n = Math.max(1, Number(input));
-                onUpdateCardCount(card.id, n);
-                setEdit(false);
-              }
-            }}
-            autoFocus
-          />
-          <button className="text-xs text-primary-300 hover:underline ml-1" onClick={() => {
-            const n = Math.max(1, Number(input));
-            onUpdateCardCount(card.id, n);
-            setEdit(false);
-          }}>保存</button>
-          <button className="text-xs text-gray-400 hover:underline ml-1" onClick={() => { setEdit(false); setInput(card.count.toString()); }}>キャンセル</button>
-        </>
-      ) : (
-        <span className="text-xs text-white/60 cursor-pointer" onClick={() => setEdit(true)} title="クリックで編集">×{card.count}</span>
-      )}
-      {memo && <span className="text-xs text-white/40 ml-2">{memo}</span>}
-      <button
-        className="ml-auto text-xs text-red-400 hover:underline"
-        onClick={() => onRemoveCard(card.id)}
-      >削除</button>
-    </li>
-  );
-}
-// BoxSection内でカード枚数を更新する関数
-function setCardCountInBox(boxId: string, cardId: string, newCount: number) {
-  setBoxes(boxes => boxes.map(b => b.id === boxId ? {
-    ...b,
-    cards: b.cards.map(c => c.id === cardId ? { ...c, count: newCount } : c)
-  } : b));
-}
       </ul>
     </section>
-  )
+  );
 }

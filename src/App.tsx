@@ -405,7 +405,7 @@ function BoxSection({ box, onRemove, onAddCard, onRemoveCard, allNames, setBoxNa
             onMouseDown={() => setPickerOpen(true)}
           >一覧</button>
           {showSuggest && filtered.length > 0 && (
-            <ul className="absolute z-10 left-0 right-0 bg-slate-800 border border-white/20 rounded-lg mt-1 max-h-40 overflow-auto shadow-lg">
+            <ul className="absolute z-10 left-0 right-0 bg-slate-800 border border-white/20 rounded-lg mt-8 max-h-40 overflow-auto shadow-lg">
               {filtered.map(name => (
                 <li
                   key={name}

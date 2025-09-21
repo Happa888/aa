@@ -274,6 +274,12 @@ export function App() {
                   allNames={allCardNames}
                   setBoxName={(id, name) => setBoxes(boxes => boxes.map(b => b.id === id ? { ...b, name } : b))}
                   setBoxes={setBoxes}
+                  onUpdateCardCountInBox={(boxId: string, cardId: string, newCount: number) => {
+                    setBoxes(boxes => boxes.map(b => b.id === boxId ? {
+                      ...b,
+                      cards: b.cards.map(c => c.id === cardId ? { ...c, count: newCount } : c)
+                    } : b));
+                  }}
                 />
               ))}
             </div>
@@ -294,9 +300,10 @@ type BoxSectionProps = {
   allNames: string[]
   setBoxName: (id: string, name: string) => void
   setBoxes: React.Dispatch<React.SetStateAction<Box[]>>
+  onUpdateCardCountInBox: (boxId: string, cardId: string, newCount: number) => void
 };
 
-function BoxSection({ box, onRemove, onAddCard, onRemoveCard, allNames, setBoxName, setBoxes }: BoxSectionProps) {
+function BoxSection({ box, onRemove, onAddCard, onRemoveCard, allNames, setBoxName, setBoxes, onUpdateCardCountInBox }: BoxSectionProps) {
   // 編集用state
   const [editBoxName, setEditBoxName] = useState(false);
   const [boxNameInput, setBoxNameInput] = useState(box.name);
@@ -340,10 +347,7 @@ function BoxSection({ box, onRemove, onAddCard, onRemoveCard, allNames, setBoxNa
   };
 
   function setCardCountInBox(cardId: string, newCount: number) {
-    setBoxes(boxes => boxes.map(b => b.id === box.id ? {
-      ...b,
-      cards: b.cards.map(c => c.id === cardId ? { ...c, count: newCount } : c)
-    } : b));
+    onUpdateCardCountInBox(box.id, cardId, newCount);
   }
 
   return (
